@@ -51,7 +51,10 @@ class KevinRewardManager:
 
         printed = {}  # how many examples we have logged per data_source
 
+        print(data)
+
         for i, item in enumerate(data):
+            print(item)
             # ---------- slice out prompt / response ----------
             amask = item.batch["attention_mask"]
             plen = item.batch["prompts"].shape[-1]
