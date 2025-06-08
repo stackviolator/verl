@@ -75,6 +75,10 @@ def load_reward_manager(config, tokenizer, num_examine, **reward_kwargs):
         from verl.workers.reward_manager import DAPORewardManager
 
         reward_manager_cls = DAPORewardManager
+    elif name == "kevin":
+        from kevin_reward_manager import KevinRewardManager
+
+        reward_manager_cls = KevinRewardManager
     else:
         raise NotImplementedError
 
