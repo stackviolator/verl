@@ -54,7 +54,10 @@ class KevinRewardManager:
         print(data)
 
         for i, item in enumerate(data):
-            print(item)
+            print(f"=== Processing item {i} ===")
+            print(f"item.non_tensor_batch keys: {list(item.non_tensor_batch.keys())}")
+            print(f"item.non_tensor_batch: {item.non_tensor_batch}")
+            
             # ---------- slice out prompt / response ----------
             amask = item.batch["attention_mask"]
             plen = item.batch["prompts"].shape[-1]
@@ -72,7 +75,12 @@ class KevinRewardManager:
             )
 
             # ---------- metadata ----------
-            data_source = item.non_tensor_batch[self.reward_fn_key]
+            # Handle missing data_source key gracefully
+            if self.reward_fn_key in item.non_tensor_batch:
+                data_source = item.non_tensor_batch[self.reward_fn_key]
+            else:
+                print(f"Warning: '{self.reward_fn_key}' not found in non_tensor_batch. Available keys: {list(item.non_tensor_batch.keys())}")
+                data_source = "unknown"  # fallback value
 
             # SGLang rollout stores each tool result under extra_info[tool_name]
             tool_json = (
