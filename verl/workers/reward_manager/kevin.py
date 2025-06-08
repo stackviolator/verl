@@ -1,4 +1,4 @@
-# kevin.py
+# kevin_reward_manager.py
 """
 KevinRewardManager – a minimal reward‑manager for veRL
 ------------------------------------------------------
@@ -7,6 +7,12 @@ KevinRewardManager – a minimal reward‑manager for veRL
 • Delegates the scalar calculation to your `compute_score` function
 • Stores the scalar on the last valid token of each response
 • Optionally prints a few example (prompt, response, score) pairs
+To use:
+    custom_reward_function.path=kevin_reward.py         # <-- your compute_score
+    custom_reward_function.name=compute_score
+    reward_model.enable=False
+    reward_model.reward_manager=kevin                   # any name ≠ built‑ins
+and make sure this file is importable (PYTHONPATH or a pip‑installable package).
 """
 
 from __future__ import annotations
@@ -26,7 +32,7 @@ class KevinRewardManager:
         num_examine: int,
         compute_score=None,
         reward_fn_key: str = "data_source",
-        tool_name: str = "kernel_bench",
+        tool_name: str = "kernel_bench",  # matches KernelBenchTool.name
     ) -> None:
         self.tokenizer = tokenizer
         self.num_examine = num_examine
@@ -42,8 +48,29 @@ class KevinRewardManager:
             data.batch["responses"], dtype=torch.float32
         )
         reward_extra_info: dict[str, list] = defaultdict(list)
-      
+
+        printed = {}  # how many examples we have logged per data_source
+
         for i, item in enumerate(data):
+            # ---------- slice out prompt / response ----------
+            amask = item.batch["attention_mask"]
+            plen = item.batch["prompts"].shape[-1]
+            valid_prompt_len = int(amask[:plen].sum())
+            valid_resp_len = int(amask[plen:].sum())
+
+            prompt_ids = item.batch["prompts"][-valid_prompt_len:]
+            resp_ids = item.batch["responses"][:valid_resp_len]
+
+            prompt_str = self.tokenizer.decode(
+                prompt_ids, skip_special_tokens=True
+            )
+            resp_str = self.tokenizer.decode(
+                resp_ids, skip_special_tokens=True
+            )
+
+            # ---------- metadata ----------
+            data_source = item.non_tensor_batch[self.reward_fn_key]
+
             # SGLang rollout stores each tool result under extra_info[tool_name]
             tool_json = (
                 item.non_tensor_batch.get("extra_info", {})
@@ -63,6 +90,15 @@ class KevinRewardManager:
 
             # place it on the final token so PPO sees one scalar per sequence
             reward_tensor[i, valid_resp_len - 1] = reward
+
+            # ---------- debug prints ----------
+            if printed.get(data_source, 0) < self.num_examine:
+                printed[data_source] = printed.get(data_source, 0) + 1
+                print("=" * 40, f"[{data_source} example]")
+                print("[prompt]\n", prompt_str)
+                print("[response]\n", resp_str)
+                print("[tool_json]\n", tool_json)
+                print("[score]", reward)
 
         if return_dict:
             return {
