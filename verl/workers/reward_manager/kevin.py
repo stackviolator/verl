@@ -31,6 +31,7 @@ class KevinRewardManager:
             
             print(f"resp: {resp}")
             print(f"tool_json: {tool_json}")
+            print(f"item.non_tensor_batch: {item.non_tensor_batch}")
 
             # -------- scalar reward ----------------------
             score = self.compute(tool_result=tool_json)
