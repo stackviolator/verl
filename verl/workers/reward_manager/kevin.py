@@ -29,7 +29,7 @@ class KevinRewardManager:
                              .get("extra_info", {})
                              .get(self.tool))          # may be None
             
-
+            print(f"resp: {resp}")
             print(f"tool_json: {tool_json}")
 
             # -------- scalar reward ----------------------
