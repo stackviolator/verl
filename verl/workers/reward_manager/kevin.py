@@ -28,6 +28,9 @@ class KevinRewardManager:
             tool_json = (item.non_tensor_batch
                              .get("extra_info", {})
                              .get(self.tool))          # may be None
+            
+
+            print(f"tool_json: {tool_json}")
 
             # -------- scalar reward ----------------------
             score = self.compute(tool_result=tool_json)
