@@ -59,6 +59,7 @@ class KevinRewardManager:
             print(f"item.non_tensor_batch: {item.non_tensor_batch}")
 
             print(f"meta: {item.non_tensor_batch['meta']}")
+            print(f"reward_scores: {item.non_tensor_batch['reward_scores']}")
             
             # ---------- slice out prompt / response ----------
             amask = item.batch["attention_mask"]
