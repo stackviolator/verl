@@ -57,6 +57,8 @@ class KevinRewardManager:
             print(f"=== Processing item {i} ===")
             print(f"item.non_tensor_batch keys: {list(item.non_tensor_batch.keys())}")
             print(f"item.non_tensor_batch: {item.non_tensor_batch}")
+
+            print(f"meta: {item.non_tensor_batch['meta']}")
             
             # ---------- slice out prompt / response ----------
             amask = item.batch["attention_mask"]
@@ -80,7 +82,32 @@ class KevinRewardManager:
                 data_source = item.non_tensor_batch[self.reward_fn_key]
             else:
                 print(f"Warning: '{self.reward_fn_key}' not found in non_tensor_batch. Available keys: {list(item.non_tensor_batch.keys())}")
-                data_source = "unknown"  # fallback value
+                # Try some common fallback strategies
+                possible_keys = ["data_source", "dataset", "source", "task", "dataset_name"]
+                data_source = None
+                for key in possible_keys:
+                    if key in item.non_tensor_batch:
+                        data_source = item.non_tensor_batch[key]
+                        print(f"Using fallback key '{key}' as data_source: {data_source}")
+                        break
+                
+                if data_source is None:
+                    # Try to derive from available metadata
+                    if "task_id" in item.non_tensor_batch:
+                        task_id = item.non_tensor_batch["task_id"]
+                        data_source = f"kernel_bench_{task_id}"
+                        print(f"Derived data_source from task_id: {data_source}")
+                    elif "meta" in item.non_tensor_batch:
+                        meta = item.non_tensor_batch["meta"]
+                        if isinstance(meta, dict) and "name" in meta:
+                            data_source = f"kernel_bench_{meta['name']}"
+                            print(f"Derived data_source from meta.name: {data_source}")
+                        else:
+                            data_source = "kernel_bench"
+                            print(f"Using generic data_source: {data_source}")
+                    else:
+                        data_source = "kernel_bench"  # Default for kernel benchmarking
+                        print(f"Using default data_source: {data_source}")
 
             # SGLang rollout stores each tool result under extra_info[tool_name]
             tool_json = (
